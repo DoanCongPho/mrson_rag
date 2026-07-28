@@ -51,7 +51,7 @@ class Chunk(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     source_file: Mapped[str] = mapped_column(String(255))
-    doc_title: Mapped[str] = mapped_column(String(255), nullable=True)
+    section_title: Mapped[str] = mapped_column(String(255))
     chunk_index: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list] = mapped_column(Vector(EMBEDDING_DIM))

@@ -1,18 +1,18 @@
-"""init schema
+"""init
 
-Revision ID: f44c6544cf80
-Revises: 
-Create Date: 2026-07-28 15:36:51.765295
+Revision ID: 9cd3c0f56619
+Revises:
+Create Date: 2026-07-28 15:58:15.628806
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+import pgvector.sqlalchemy
 
 # revision identifiers, used by Alembic.
-revision: str = 'f44c6544cf80'
+revision: str = '9cd3c0f56619'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,6 +24,7 @@ def upgrade() -> None:
     op.create_table('chunks',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('source_file', sa.String(length=255), nullable=False),
+    sa.Column('section_title', sa.String(length=255), nullable=False),
     sa.Column('doc_title', sa.String(length=255), nullable=True),
     sa.Column('chunk_index', sa.Integer(), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
