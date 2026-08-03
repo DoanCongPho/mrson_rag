@@ -12,24 +12,25 @@ def embed_query(query: str) -> list[float]:
     )
     return response.data[0].embedding
 
-def retrieve(query: str, top_k: int = 5) -> list[Chunk]:
+def retrieve(query: str, top_k: int = 5) -> list[tuple[Chunk, float]]:
     query_vector = embed_query(query)
     session = SessionLocal()
+    distance = Chunk.embedding.cosine_distance(query_vector)
     results = (
-        session.query(Chunk)
-        .order_by(Chunk.embedding.cosine_distance(query_vector))
+        session.query(Chunk, distance.label("distance"))
+        .order_by(distance)
         .limit(top_k)
         .all()
     )
     session.close()
-    return results
+    return [(chunk, float(dist)) for chunk, dist in results]
 
 
 def main():
     query = "Value line là gì?"
-    chunks = retrieve(query)
-    for c in chunks:
-        print(c.section_title)
+    results = retrieve(query)
+    for chunk, distance in results:
+        print(f"{chunk.section_title} (distance={distance:.4f})")
     print()
 
 if __name__ == "__main__":

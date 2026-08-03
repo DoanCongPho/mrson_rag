@@ -39,7 +39,8 @@ def single_turn():
         if not user_query:
             continue
 
-        chunks = retrieve(user_query)
+        results = retrieve(user_query)
+        chunks = [chunk for chunk, _ in results]
         prompt = build_prompt(chunks=chunks)
 
         response = client.chat.completions.create(
