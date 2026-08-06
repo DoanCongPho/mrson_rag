@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.llm import build_prompt, client
@@ -8,6 +9,13 @@ from db.models import Conversation, Message, RetrievalLog, User
 from db.session import get_db
 
 app = FastAPI(title="Mr Son RAG")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def get_or_create_user(db: Session, name: str) -> User:

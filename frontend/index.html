@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Learn With Heart — Trợ lý IELTS Speaking</title>
+<link rel="icon" type="image/png" href="assets/logo.png" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="name-gate" class="overlay">
+  <div class="name-card">
+    <img src="assets/logo.png" alt="Learn With Heart" class="name-logo" />
+    <h1>Learn With Heart</h1>
+    <p>Trợ lý học IELTS Speaking — hỏi bất cứ gì về bài học của thầy Sơn</p>
+    <form id="name-form">
+      <input id="name-input" type="text" placeholder="Nhập tên của bạn" maxlength="50" required autocomplete="off" />
+      <button type="submit">Bắt đầu</button>
+    </form>
+  </div>
+</div>
+
+<div class="app">
+
+  <header class="app-header">
+    <img src="assets/logo.png" alt="logo" class="header-logo" />
+    <div class="header-text">
+      <h1>Learn With Heart</h1>
+      <span>Trợ lý IELTS Speaking</span>
+    </div>
+    <button id="new-chat-btn" class="new-chat-btn" title="Cuộc trò chuyện mới">+ Mới</button>
+  </header>
+
+  <main id="chat-window" class="chat-window">
+    <div class="empty-state" id="empty-state">
+      <img src="assets/logo.png" alt="" class="empty-logo" />
+      <p>Hỏi mình về Value Line, cue card, hay bất kỳ phần nào trong bài học nhé.</p>
+    </div>
+  </main>
+
+  <form id="chat-form" class="chat-form">
+    <textarea
+      id="chat-input"
+      placeholder="Nhập câu hỏi của bạn..."
+      rows="1"
+      required
+    ></textarea>
+    <button type="submit" id="send-btn" aria-label="Gửi">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 2L11 13" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </form>
+
+</div>
+
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

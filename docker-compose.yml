@@ -12,5 +12,23 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  backend:
+    build: .
+    container_name: mrson_rag_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://raguser:ragpass@db:5432/ragdb
+    depends_on:
+      - db
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build: ./frontend
+    container_name: mrson_rag_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+
 volumes:
   pgdata:
