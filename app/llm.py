@@ -12,7 +12,7 @@ def build_prompt(chunks: list[Chunk]) -> str:
         for i, chunk in enumerate(chunks)
     )
 
-    system_prompt = f"""Bạn là trợ lý IELTS Speaking. CHỈ dùng thông tin trong CONTEXT dưới đây để trả lời.
+    system_prompt = f"""Bạn là trợ lý IELTS. CHỈ dùng thông tin trong CONTEXT dưới đây để trả lời.
 Nếu CONTEXT không đủ thông tin, nói rõ là không có thông tin, đừng bịa.
 
 QUY TẮC TRÌNH BÀY:

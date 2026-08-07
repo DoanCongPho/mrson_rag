@@ -1,7 +1,7 @@
 from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from pgvector.sqlalchemy import Vector
 
 EMBEDDING_DIM = 1536  # text-embedding-3-small
@@ -57,6 +57,7 @@ class Chunk(Base):
     embedding: Mapped[list] = mapped_column(Vector(EMBEDDING_DIM))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    doc_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     retrieval_logs: Mapped[List["RetrievalLog"]] = relationship(back_populates="chunk")
 
@@ -76,4 +77,13 @@ class RetrievalLog(Base):
     chunk: Mapped["Chunk"] = relationship(back_populates="retrieval_logs")
 
 
+
+
+class Document(Base):
+
+    __tablename__ = 'documents'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True)
+    url: Mapped[str] = mapped_column(String)
 

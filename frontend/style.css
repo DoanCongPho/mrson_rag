@@ -354,6 +354,15 @@ body {
   color: var(--brand-dark);
 }
 
+.source-chip a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.source-chip a:hover {
+  text-decoration: underline;
+}
+
 /* ---------- Typing indicator ---------- */
 .typing-dots {
   display: flex;

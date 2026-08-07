@@ -111,6 +111,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
                 score=score,
                 source_file=chunk.source_file,
                 section_title=chunk.section_title,
+                doc_url=chunk.doc_url,
             )
         )
 

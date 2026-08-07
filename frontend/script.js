@@ -125,7 +125,10 @@ function appendBotMessage(answer, sources) {
     sources.forEach((s) => {
       const chip = document.createElement("div");
       chip.className = "source-chip";
-      chip.innerHTML = `<b>[${s.rank}]</b> ${escapeHtml(s.source_file)} &gt; ${escapeHtml(s.section_title)} (score ${s.score.toFixed(2)})`;
+      const label = `<b>[${s.rank}]</b> ${escapeHtml(s.source_file)} &gt; ${escapeHtml(s.section_title)} (score ${s.score.toFixed(2)})`;
+      chip.innerHTML = s.doc_url
+        ? `<a href="${escapeHtml(s.doc_url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+        : label;
       details.appendChild(chip);
     });
 

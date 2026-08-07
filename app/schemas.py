@@ -12,6 +12,7 @@ class SourceOut(BaseModel):
     score: float
     source_file: str
     section_title: str
+    doc_url: str | None = None
 
 
 class ChatResponse(BaseModel):
