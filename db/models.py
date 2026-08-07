@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List
@@ -55,6 +55,7 @@ class Chunk(Base):
     chunk_index: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list] = mapped_column(Vector(EMBEDDING_DIM))
+    is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     retrieval_logs: Mapped[List["RetrievalLog"]] = relationship(back_populates="chunk")

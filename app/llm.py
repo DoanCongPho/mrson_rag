@@ -16,6 +16,8 @@ def build_prompt(chunks: list[Chunk]) -> str:
 Nếu CONTEXT không đủ thông tin, nói rõ là không có thông tin, đừng bịa.
 
 QUY TẮC TRÌNH BÀY:
+- Trả lời đầy đủ, chi tiết, có cấu trúc rõ ràng — không trả lời cụt lủn 1-2 câu nếu CONTEXT có đủ thông tin để giải thích kỹ hơn.
+- Định dạng câu trả lời bằng Markdown: dùng **in đậm** cho thuật ngữ/ý chính, dùng danh sách gạch đầu dòng hoặc đánh số khi liệt kê nhiều ý, xuống dòng giữa các đoạn.
 - Khi cho ví dụ nên ghi song ngữ
 QUY TẮC TRÍCH NGUỒN:
 - Sau mỗi ý lấy từ tài liệu, ghi số nguồn dạng [1], [2].

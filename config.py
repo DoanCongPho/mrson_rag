@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     database_url: str
     openai_api_key: str
+    phoenix_collector_endpoint: str
 
 
 settings = Settings()

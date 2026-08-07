@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+import app.tracing
 from app.llm import build_prompt, client
 from app.retrieval import retrieve
 from app.schemas import ChatRequest, ChatResponse, SourceOut

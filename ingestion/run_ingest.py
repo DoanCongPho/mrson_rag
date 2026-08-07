@@ -14,7 +14,9 @@ def ingest_file(session, path: str):
         return
     chunks = embed_chunks(chunks)
 
-    session.query(Chunk).filter(Chunk.source_file == path).delete()
+    session.query(Chunk).filter(
+        Chunk.source_file == path, Chunk.is_active.is_(True)
+    ).update({Chunk.is_active: False})
 
     db_chunks = []
     for chunk in chunks:

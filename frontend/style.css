@@ -225,14 +225,71 @@ body {
   padding: 12px 14px;
   font-size: 14.5px;
   line-height: 1.55;
-  white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.msg-row.user .msg-bubble,
+.msg-row.error .msg-bubble {
+  white-space: pre-wrap;
 }
 
 .msg-row.user .msg-bubble {
   background: var(--brand);
   color: white;
   border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+}
+
+/* ---------- Markdown content (bot answers) ---------- */
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-body > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body p {
+  margin: 0 0 10px;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.markdown-body li {
+  margin-bottom: 4px;
+}
+
+.markdown-body strong {
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+
+.markdown-body code {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.markdown-body pre {
+  background: var(--brand-light);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 0 0 10px;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+}
+
+.markdown-body a {
+  color: var(--brand);
 }
 
 .msg-row.bot .msg-bubble {

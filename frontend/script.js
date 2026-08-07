@@ -51,7 +51,7 @@ chatInput.addEventListener("input", () => {
 });
 
 chatInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
     e.preventDefault();
     chatForm.requestSubmit();
   }
@@ -110,8 +110,9 @@ function appendBotMessage(answer, sources) {
   avatar.alt = "bot";
 
   const bubble = document.createElement("div");
-  bubble.className = "msg-bubble";
-  bubble.textContent = answer;
+  bubble.className = "msg-bubble markdown-body";
+  const rawHtml = marked.parse(answer, { breaks: true });
+  bubble.innerHTML = DOMPurify.sanitize(rawHtml);
   col.appendChild(bubble);
 
   if (sources && sources.length > 0) {

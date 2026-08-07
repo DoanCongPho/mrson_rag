@@ -1,9 +1,18 @@
 from openai import OpenAI
 from config import settings
+
 from db.session import SessionLocal
 from db.models import Chunk
 
+from app.tracing import tracer_provider
+
+from openinference.semconv.trace import SpanAttributes
+
+
+tracer = tracer_provider.get_tracer(__name__)
+
 client = OpenAI(api_key=settings.openai_api_key)
+
 
 def embed_query(query: str) -> list[float]:
     response = client.embeddings.create(
@@ -13,17 +22,27 @@ def embed_query(query: str) -> list[float]:
     return response.data[0].embedding
 
 def retrieve(query: str, top_k: int = 5) -> list[tuple[Chunk, float]]:
-    query_vector = embed_query(query)
-    session = SessionLocal()
-    distance = Chunk.embedding.cosine_distance(query_vector)
-    results = (
-        session.query(Chunk, distance.label("distance"))
-        .order_by(distance)
-        .limit(top_k)
-        .all()
-    )
-    session.close()
-    return [(chunk, float(dist)) for chunk, dist in results]
+    with tracer.start_as_current_span("retrieve") as span:
+        # Phoenix log
+        span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "RETRIEVER")
+        span.set_attribute(SpanAttributes.INPUT_VALUE, query)
+
+        query_vector = embed_query(query)
+        session = SessionLocal()
+        distance = Chunk.embedding.cosine_distance(query_vector)
+        results = (
+            session.query(Chunk, distance.label("distance"))
+            .filter(Chunk.is_active.is_(True))
+            .order_by(distance)
+            .limit(top_k)
+            .all()
+        )
+        session.close()
+        for i, (chunk, dist) in enumerate(results):
+            span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.id", str(chunk.id))
+            span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.content", chunk.text)
+            span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.score", 1 - dist)
+        return [(chunk, float(dist)) for chunk, dist in results]
 
 
 def main():
