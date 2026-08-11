@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   userName: "lwh_user_name",
   conversationId: "lwh_conversation_id",
+  chatMode: "lwh_chat_mode",
 };
 
 const nameGate = document.getElementById("name-gate");
@@ -13,8 +14,10 @@ const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const sendBtn = document.getElementById("send-btn");
 const newChatBtn = document.getElementById("new-chat-btn");
+const modeButtons = document.querySelectorAll(".mode-btn");
 
 let conversationId = localStorage.getItem(STORAGE_KEYS.conversationId) || null;
+let chatMode = localStorage.getItem(STORAGE_KEYS.chatMode) || "part2";
 
 function getUserName() {
   return localStorage.getItem(STORAGE_KEYS.userName);
@@ -38,11 +41,32 @@ nameForm.addEventListener("submit", (e) => {
   chatInput.focus();
 });
 
-newChatBtn.addEventListener("click", () => {
+function startNewConversation() {
   conversationId = null;
   localStorage.removeItem(STORAGE_KEYS.conversationId);
   chatWindow.innerHTML = "";
   chatWindow.appendChild(emptyState);
+}
+
+newChatBtn.addEventListener("click", () => {
+  startNewConversation();
+});
+
+function renderActiveMode() {
+  modeButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mode === chatMode);
+  });
+}
+
+modeButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.mode === chatMode) return;
+    chatMode = btn.dataset.mode;
+    localStorage.setItem(STORAGE_KEYS.chatMode, chatMode);
+    renderActiveMode();
+    startNewConversation();
+    chatInput.focus();
+  });
 });
 
 chatInput.addEventListener("input", () => {
@@ -162,6 +186,7 @@ async function sendMessage(query) {
   const body = {
     user_name: userName,
     query,
+    category: chatMode,
   };
   if (conversationId) {
     body.conversation_id = conversationId;
@@ -210,3 +235,4 @@ chatForm.addEventListener("submit", async (e) => {
 });
 
 initNameGate();
+renderActiveMode();
