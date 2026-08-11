@@ -21,22 +21,23 @@ def embed_query(query: str) -> list[float]:
     )
     return response.data[0].embedding
 
-def retrieve(query: str, top_k: int = 5) -> list[tuple[Chunk, float]]:
+def retrieve(query: str, top_k: int = 5, category: str | None = None) -> list[tuple[Chunk, float]]:
     with tracer.start_as_current_span("retrieve") as span:
         # Phoenix log
         span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "RETRIEVER")
         span.set_attribute(SpanAttributes.INPUT_VALUE, query)
+        if category is not None:
+            span.set_attribute("retrieval.category_filter", category)
 
         query_vector = embed_query(query)
         session = SessionLocal()
         distance = Chunk.embedding.cosine_distance(query_vector)
-        results = (
-            session.query(Chunk, distance.label("distance"))
-            .filter(Chunk.is_active.is_(True))
-            .order_by(distance)
-            .limit(top_k)
-            .all()
-        )
+        # Không có ANN index (ivfflat/hnsw) trên bảng này -- exact scan là đủ nhanh
+        # và chính xác hơn ở quy mô ~1k chunks, cố ý chưa thêm ANN index.
+        q = session.query(Chunk, distance.label("distance")).filter(Chunk.is_active.is_(True))
+        if category is not None:
+            q = q.filter(Chunk.category == category)
+        results = q.order_by(distance).limit(top_k).all()
         session.close()
         for i, (chunk, dist) in enumerate(results):
             span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.id", str(chunk.id))

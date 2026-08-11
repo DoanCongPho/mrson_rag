@@ -8,12 +8,13 @@ from ingestion.tracing import tracer_provider
 from openinference.semconv.trace import SpanAttributes
 
 SOURCE_DIR = "word_files/heading_already_files"
+CATEGORIES = ["part2", "part3", "writing"]
 
 
 tracer = tracer_provider.get_tracer(__name__)
 
 
-def ingest_file(session, path: str, filename: str):
+def ingest_file(session, path: str, filename: str, category: str):
 
     with tracer.start_as_current_span(f"ingest: {filename}") as file_span:
         file_span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "CHAIN")
@@ -49,6 +50,7 @@ def ingest_file(session, path: str, filename: str):
                 chunk_index=chunk["chunk_index"],
                 text=chunk["text"],
                 embedding=chunk["embedding"],
+                category=category,
             )
             db_chunks.append(db_chunk)
         session.add_all(db_chunks)
@@ -58,11 +60,13 @@ def ingest_file(session, path: str, filename: str):
 def main():
     session = SessionLocal()
     check_connection()
-    for filename in os.listdir(SOURCE_DIR):
-        if filename.endswith(".docx"):
-            path = os.path.join(SOURCE_DIR, filename)
-            print(f"Ingesting {filename}...")
-            ingest_file(session, path, filename)
+    for category in CATEGORIES:
+        category_dir = os.path.join(SOURCE_DIR, category)
+        for filename in os.listdir(category_dir):
+            if filename.endswith(".docx"):
+                path = os.path.join(category_dir, filename)
+                print(f"Ingesting [{category}] {filename}...")
+                ingest_file(session, path, filename, category)
     session.close()
 
 

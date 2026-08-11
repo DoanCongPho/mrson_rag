@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 service_account.json
 drive_links.db
+
+
+word_files/*

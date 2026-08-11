@@ -56,6 +56,7 @@ class Chunk(Base):
     text: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list] = mapped_column(Vector(EMBEDDING_DIM))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    category: Mapped[str] = mapped_column(String(20), server_default="writing")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     doc_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 

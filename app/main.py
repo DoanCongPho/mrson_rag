@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 import app.tracing
 from app.llm import build_prompt, client
 from app.retrieval import retrieve
+from app.router import route
 from app.schemas import ChatRequest, ChatResponse, SourceOut
 from db.models import Conversation, Message, RetrievalLog, User
 from db.session import get_db
@@ -54,9 +55,23 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         db, user, request.conversation_id, title=request.query
     )
 
-    results = retrieve(request.query)
-    chunks = [chunk for chunk, _ in results]
-    prompt = build_prompt(chunks)
+    decision = route(request.query)
+
+    if decision.should_retrieve:
+        category = request.category or (None if decision.category == "all" else decision.category)
+        results = retrieve(
+            request.query,
+            top_k=decision.top_k,
+            category=category,
+        )
+        chunks = [chunk for chunk, _ in results]
+        prompt = build_prompt(chunks)
+    else:
+        return ChatResponse(
+            conversation_id=conversation.id,
+            answer="Mr.Son: Hỏi gì thiếu minh bạch rõ ràng.",
+            sources=[],
+        )
 
     user_message = Message(
         role="user",

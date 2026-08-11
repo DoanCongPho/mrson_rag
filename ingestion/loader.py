@@ -28,8 +28,7 @@ def _table_rows_text(table: Table) -> list[str]:
     for row in body_rows:
         parts = [f"{h}: {v}" for h, v in zip(header, row) if v]
         texts.append("\n".join(parts))
-    for t in texts:
-        print(t)
+
     return texts
 
 
