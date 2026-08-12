@@ -110,8 +110,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     db.flush()
 
     sources = []
-    for rank, (chunk, distance) in enumerate(results, start=1):
-        score = 1 - distance
+    for rank, (chunk, score) in enumerate(results, start=1):
         db.add(
             RetrievalLog(
                 score=score,

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     openai_api_key: str
     phoenix_collector_endpoint: str
     phoenix_enabled: bool = True
+    reranker_enabled: bool = False
     root_folder_id: str = "1gkgCe5WNw5EuxAwAx6jbGQZea900tjcW"
 
 

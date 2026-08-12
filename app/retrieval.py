@@ -13,6 +13,10 @@ tracer = tracer_provider.get_tracer(__name__)
 
 client = OpenAI(api_key=settings.openai_api_key)
 
+# Khi bật reranker, lấy 1 shortlist rộng hơn bằng cosine (rẻ) rồi để
+# cross-encoder chấm lại chính xác hơn xuống còn top_k thật.
+RERANK_CANDIDATE_K = 30
+
 
 def embed_query(query: str) -> list[float]:
     response = client.embeddings.create(
@@ -32,25 +36,33 @@ def retrieve(query: str, top_k: int = 5, category: str | None = None) -> list[tu
         query_vector = embed_query(query)
         session = SessionLocal()
         distance = Chunk.embedding.cosine_distance(query_vector)
-        # Không có ANN index (ivfflat/hnsw) trên bảng này -- exact scan là đủ nhanh
-        # và chính xác hơn ở quy mô ~1k chunks, cố ý chưa thêm ANN index.
+
         q = session.query(Chunk, distance.label("distance")).filter(Chunk.is_active.is_(True))
         if category is not None:
             q = q.filter(Chunk.category == category)
-        results = q.order_by(distance).limit(top_k).all()
+        fetch_k = RERANK_CANDIDATE_K if settings.reranker_enabled else top_k
+        rows = q.order_by(distance).limit(fetch_k).all()
         session.close()
-        for i, (chunk, dist) in enumerate(results):
+
+        results = [(chunk, 1 - float(dist)) for chunk, dist in rows]
+
+        if settings.reranker_enabled and results:
+            from app.reranker import rerank  # import lazy: chỉ load model (torch) khi thật sự bật
+
+            results = rerank(query, results, top_k)
+
+        for i, (chunk, score) in enumerate(results):
             span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.id", str(chunk.id))
             span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.content", chunk.text)
-            span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.score", 1 - dist)
-        return [(chunk, float(dist)) for chunk, dist in results]
+            span.set_attribute(f"{SpanAttributes.RETRIEVAL_DOCUMENTS}.{i}.document.score", score)
+        return results
 
 
 def main():
     query = "Value line là gì?"
     results = retrieve(query)
-    for chunk, distance in results:
-        print(f"{chunk.section_title} (distance={distance:.4f})")
+    for chunk, score in results:
+        print(f"{chunk.section_title} (score={score:.4f})")
     print()
 
 if __name__ == "__main__":
