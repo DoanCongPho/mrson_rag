@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     phoenix_enabled: bool = True
     reranker_enabled: bool = False
     root_folder_id: str = "1gkgCe5WNw5EuxAwAx6jbGQZea900tjcW"
+    rerank_candidate_k: int = 30
 
 
 settings = Settings()
+
+

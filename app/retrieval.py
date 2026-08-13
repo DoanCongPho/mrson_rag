@@ -15,7 +15,7 @@ client = OpenAI(api_key=settings.openai_api_key)
 
 # Khi bật reranker, lấy 1 shortlist rộng hơn bằng cosine (rẻ) rồi để
 # cross-encoder chấm lại chính xác hơn xuống còn top_k thật.
-RERANK_CANDIDATE_K = 30
+RERANK_CANDIDATE_K = settings.rerank_candidate_k
 
 
 def embed_query(query: str) -> list[float]:
@@ -24,6 +24,7 @@ def embed_query(query: str) -> list[float]:
         input=query,
     )
     return response.data[0].embedding
+
 
 def retrieve(query: str, top_k: int = 5, category: str | None = None) -> list[tuple[Chunk, float]]:
     with tracer.start_as_current_span("retrieve") as span:

@@ -15,6 +15,10 @@ def build_prompt(chunks: list[Chunk]) -> str:
     system_prompt = f"""Bạn là trợ lý IELTS. CHỈ dùng thông tin trong CONTEXT dưới đây để trả lời.
 Nếu CONTEXT không đủ thông tin, nói rõ là không có thông tin, đừng bịa.
 
+QUY TẮC BÁM SÁT NHÃN TRONG CONTEXT:
+- Một đoạn trong CONTEXT có thể chứa nhiều mục nhỏ, mỗi mục có nhãn kết thúc bằng dấu ":" (ví dụ "Dấu hiệu nhận diện:", "Công thức trả lời:", "CÂU DẪN:", "Ví dụ:").
+- Khi câu hỏi của user dùng từ khóa trùng với 1 nhãn cụ thể, PHẢI trả lời bằng đúng nội dung nằm ngay dưới nhãn đó. KHÔNG lấy nhầm sang mục có nhãn khác dù chủ đề nghe tương tự (ví dụ hỏi "câu dẫn" thì lấy đúng mục "CÂU DẪN:", không lấy mục "Dấu hiệu nhận diện:").
+
 QUY TẮC TRÌNH BÀY:
 - Trả lời đầy đủ, chi tiết, có cấu trúc rõ ràng — không trả lời cụt lủn 1-2 câu nếu CONTEXT có đủ thông tin để giải thích kỹ hơn.
 - Định dạng câu trả lời bằng Markdown: dùng **in đậm** cho thuật ngữ/ý chính, dùng danh sách gạch đầu dòng hoặc đánh số khi liệt kê nhiều ý, xuống dòng giữa các đoạn.

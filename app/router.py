@@ -24,8 +24,9 @@ CATEGORY_INSTRUCTIONS = """There are 4 possible category values:
 - "all": Use when the question is general, doesn't clearly belong to Part 2 or Part 3 alone, or the user wants to compare/combine both tracks."""
 
 RETRIEVE_DECISION_INSTRUCTIONS = """Deciding should_retrieve:
-- false if: greetings (hi, hello), thanks, farewells, questions about the chatbot itself (who are you, what can you do), or small talk unrelated to IELTS learning content.
-- true for ANY question related to Speaking Part 2, Part 3, or grammar content in the materials -- even if not 100% certain, prefer retrieving over skipping."""
+- false ONLY if: greetings (hi, hello), thanks, farewells, questions about the chatbot itself (who are you, what can you do), or small talk with zero learning content.
+- true for ANY question related to Speaking Part 2, Part 3, or grammar content in the materials -- even if not 100% certain, prefer retrieving over skipping.
+- Short definition-style questions ("X là gì?", "X nghĩa là gì?") about a single term are ALWAYS true, even with no extra context and even if the term looks like a generic English word (e.g. "keyword", "chunk") -- this class gives its own vocabulary specific meanings, so brevity or an ordinary-looking word is never a reason to classify as false. When in doubt about a term, retrieving and finding nothing is far better than blocking a real question."""
 
 TOP_K_INSTRUCTIONS = """Deciding top_k (number of document chunks to fetch, range 3-10):
 - Narrow, specific questions (e.g. definition of one term, one specific technique) -> low top_k (3-4).

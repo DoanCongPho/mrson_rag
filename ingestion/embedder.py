@@ -11,7 +11,7 @@ def embed_chunks(chunks: list[dict]) -> list[dict]:
 
     response = client.embeddings.create(
         model="text-embedding-3-small",
-        input=[f"{c['section_title']}\n\n{c['text']}" for c in chunks],
+        input=[c["text"] for c in chunks],
     )
     for chunk, item in zip(chunks, response.data):
         chunk["embedding"] = item.embedding

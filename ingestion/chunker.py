@@ -3,6 +3,18 @@ from ingestion.loader import paragraph_features
 
 enc = tiktoken.encoding_for_model("text-embedding-3-small")
 
+SUB_HEADING_MAX_WORDS = 6
+
+
+def _is_sub_heading(p: dict) -> bool:
+
+    if p["style"] == "Table":
+        return False
+    text = p["text"]
+    if not text.endswith(":"):
+        return False
+    return len(text.split()) <= SUB_HEADING_MAX_WORDS
+
 
 def chunk_paragraphs(source_file: str, max_tokens: int = 400) -> list[dict]:
     paragraphs = paragraph_features(source_file)
@@ -24,7 +36,7 @@ def chunk_paragraphs(source_file: str, max_tokens: int = 400) -> list[dict]:
             current_paras = []
 
         else:
-            current_paras.append(p["text"])
+            current_paras.append(p)
 
     if current_title is not None:
         sections.append({
@@ -35,22 +47,31 @@ def chunk_paragraphs(source_file: str, max_tokens: int = 400) -> list[dict]:
     chunks = []
     chunk_index = 0
 
+    def flush(section_title: str, paras: list[str]) -> dict:
+
+        nonlocal chunk_index
+        chunk = {
+            "source_file": source_file,
+            "section_title": section_title,
+            "chunk_index": chunk_index,
+            "text": section_title + "\n\n" + "\n\n".join(paras),
+        }
+        chunk_index += 1
+        return chunk
+
     for section in sections:
         current_chunk = []
         current_tokens = 0
 
-        for para in section["paragraphs"]:
+        for p in section["paragraphs"]:
+            para = p["text"]
             paragraph_tokens = len(enc.encode(para))
 
-            if current_chunk and current_tokens + paragraph_tokens > max_tokens:
-                chunks.append({
-                    "source_file": source_file,
-                    "section_title": section["section_title"],
-                    "chunk_index": chunk_index,
-                    "text": "\n\n".join(current_chunk),
-                })
+            size_break = current_chunk and current_tokens + paragraph_tokens > max_tokens
+            sub_heading_break = current_chunk and len(current_chunk) > 1 and _is_sub_heading(p)
 
-                chunk_index += 1
+            if size_break or sub_heading_break:
+                chunks.append(flush(section["section_title"], current_chunk))
                 current_chunk = []
                 current_tokens = 0
 
@@ -58,13 +79,7 @@ def chunk_paragraphs(source_file: str, max_tokens: int = 400) -> list[dict]:
             current_tokens += paragraph_tokens
 
         if current_chunk:
-            chunks.append({
-                "source_file": source_file,
-                "section_title": section["section_title"],
-                "chunk_index": chunk_index,
-                "text": "\n\n".join(current_chunk),
-            })
-            chunk_index += 1
+            chunks.append(flush(section["section_title"], current_chunk))
 
     return chunks
 

@@ -67,6 +67,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         chunks = [chunk for chunk, _ in results]
         prompt = build_prompt(chunks)
     else:
+        db.commit()
         return ChatResponse(
             conversation_id=conversation.id,
             answer="Mr.Son: Hỏi gì thiếu minh bạch rõ ràng.",

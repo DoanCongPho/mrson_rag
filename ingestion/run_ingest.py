@@ -6,6 +6,7 @@ from ingestion.chunker import chunk_paragraphs
 from ingestion.embedder import embed_chunks
 from ingestion.tracing import tracer_provider
 from openinference.semconv.trace import SpanAttributes
+from ingestion.cleanup_chunks import clean
 
 SOURCE_DIR = "word_files/heading_already_files"
 CATEGORIES = ["part2", "part3", "writing"]
@@ -40,6 +41,9 @@ def ingest_file(session, path: str, filename: str, category: str):
         session.query(Chunk).filter(
             Chunk.source_file == path, Chunk.is_active.is_(True)
         ).update({Chunk.is_active: False})
+
+        # Clean redundant chunks before running ingest.
+        clean(session)
 
         db_chunks = []
         for chunk in chunks:

@@ -4,7 +4,7 @@ from db.models import Chunk
 
 
 
-def _clean(session):
+def clean(session):
     deleted = session.query(Chunk).filter(
         Chunk.is_active.is_(False),
         ~Chunk.retrieval_logs.any(),
@@ -16,7 +16,7 @@ def _clean(session):
 def main():
     session = SessionLocal()
     check_connection()
-    deleted = _clean(session)
+    deleted = clean(session)
     print(f"[cleanup] {deleted} inactive, unreferenced chunks deleted")
     session.close()
 
