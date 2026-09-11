@@ -2,7 +2,7 @@ from docx import Document
 from docx.oxml.ns import qn
 from docx.table import Table
 from docx.text.paragraph import Paragraph
-
+import re
 
 def _iter_block_items(doc):
 
@@ -49,6 +49,8 @@ def paragraph_features(path: str) -> list[dict]:
 
         para = block
         text = para.text.strip()
+        text = re.sub(r'\n+', '\n', text)
+
         if not text:
             continue
 

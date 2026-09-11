@@ -16,7 +16,7 @@ SUB_HEADING_MAX_WORDS = 6
 #     return len(text.split()) <= SUB_HEADING_MAX_WORDS
 
 
-def chunk_paragraphs(source_file: str, max_tokens: int = 400) -> list[dict]:
+def chunk_paragraphs(source_file: str, max_tokens: int = 512) -> list[dict]:
     paragraphs = paragraph_features(source_file)
 
     sections = []
