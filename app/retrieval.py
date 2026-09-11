@@ -48,7 +48,7 @@ def retrieve(query: str, top_k: int = 5, category: str | None = None) -> list[tu
         results = [(chunk, 1 - float(dist)) for chunk, dist in rows]
 
         if settings.reranker_enabled and results:
-            from app.reranker import rerank  # import lazy: chỉ load model (torch) khi thật sự bật
+            from app.reranker import rerank
 
             results = rerank(query, results, top_k)
 

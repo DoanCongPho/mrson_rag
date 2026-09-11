@@ -49,3 +49,19 @@
     HyDE
     HYBRID SEARCH
 
+
+
+RAG eval:
+
+Retrieve phase:
+Precision
+Recall
+Hit rate
+Mean Reciprocal Rank
+Normalized Discounted Cumulative Gain
+
+Generative phase:
+Faithfulness
+Answer Relevancy
+Answer Correctness
+

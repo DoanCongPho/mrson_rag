@@ -6,14 +6,14 @@ enc = tiktoken.encoding_for_model("text-embedding-3-small")
 SUB_HEADING_MAX_WORDS = 6
 
 
-def _is_sub_heading(p: dict) -> bool:
+# def _is_sub_heading(p: dict) -> bool:
 
-    if p["style"] == "Table":
-        return False
-    text = p["text"]
-    if not text.endswith(":"):
-        return False
-    return len(text.split()) <= SUB_HEADING_MAX_WORDS
+#     if p["style"] == "Table":
+#         return False
+#     text = p["text"]
+#     if not text.endswith(":"):
+#         return False
+#     return len(text.split()) <= SUB_HEADING_MAX_WORDS
 
 
 def chunk_paragraphs(source_file: str, max_tokens: int = 400) -> list[dict]:
@@ -68,9 +68,10 @@ def chunk_paragraphs(source_file: str, max_tokens: int = 400) -> list[dict]:
             paragraph_tokens = len(enc.encode(para))
 
             size_break = current_chunk and current_tokens + paragraph_tokens > max_tokens
-            sub_heading_break = current_chunk and len(current_chunk) > 1 and _is_sub_heading(p)
+            # sub_heading_break = current_chunk and len(current_chunk) > 1 and _is_sub_heading(p)
 
-            if size_break or sub_heading_break:
+            # if size_break or sub_heading_break:
+            if size_break:
                 chunks.append(flush(section["section_title"], current_chunk))
                 current_chunk = []
                 current_tokens = 0
