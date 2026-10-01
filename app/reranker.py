@@ -8,7 +8,7 @@ from openinference.semconv.trace import SpanAttributes
 tracer = tracer_provider.get_tracer(__name__)
 
 MODEL_NAME = "AITeamVN/Vietnamese_Reranker"
-MAX_LENGTH = 2304
+MAX_LENGTH = 1024
 
 _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 _model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)

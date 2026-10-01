@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -8,9 +10,19 @@ from app.retrieval import retrieve
 from app.router import route
 from app.schemas import ChatRequest, ChatResponse, SourceOut
 from db.models import Conversation, Message, RetrievalLog, User
+from config import settings
 from db.session import get_db
 
-app = FastAPI(title="Mr Son RAG")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Load the reranker model at startup so the first request doesn't pay for it.
+    if settings.reranker_enabled:
+        from app import reranker  # noqa: F401
+    yield
+
+
+app = FastAPI(title="Mr Son RAG", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
