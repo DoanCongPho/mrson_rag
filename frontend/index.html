@@ -9,57 +9,74 @@
 </head>
 <body>
 
-<div id="name-gate" class="overlay">
+<div id="login-gate" class="overlay hidden">
   <div class="name-card">
     <img src="assets/logo.png" alt="Learn With Heart" class="name-logo" />
     <h1>Learn With Heart</h1>
     <p>Trợ lý học IELTS Speaking — hỏi bất cứ gì về bài học của thầy Sơn</p>
-    <form id="name-form">
-      <input id="name-input" type="text" placeholder="Nhập tên của bạn" maxlength="50" required autocomplete="off" />
-      <button type="submit">Bắt đầu</button>
-    </form>
+    <div id="google-btn" class="google-btn"></div>
+    <p id="login-error" class="login-error hidden"></p>
   </div>
 </div>
 
-<div class="app">
+<div class="layout">
 
-  <header class="app-header">
-    <img src="assets/logo.png" alt="logo" class="header-logo" />
-    <div class="header-text">
-      <h1>Learn With Heart</h1>
-      <span>Trợ lý IELTS Speaking</span>
+  <aside id="sidebar" class="sidebar" aria-label="Lịch sử trò chuyện">
+    <div class="sidebar-header">
+      <span id="sidebar-title">Lịch sử</span>
+      <button type="button" id="close-sidebar-btn" class="icon-btn sidebar-close" aria-label="Đóng">✕</button>
     </div>
-    <button id="new-chat-btn" class="new-chat-btn" title="Cuộc trò chuyện mới">+ Mới</button>
-  </header>
+    <button type="button" id="sidebar-new-chat-btn" class="sidebar-new-chat">+ Cuộc trò chuyện mới</button>
+    <nav id="conversation-list" class="conversation-list"></nav>
+    <div class="sidebar-user">
+      <img id="user-avatar" class="user-avatar" alt="" referrerpolicy="no-referrer" />
+      <span id="user-name" class="user-name"></span>
+      <button type="button" id="logout-btn" class="logout-btn">Đăng xuất</button>
+    </div>
+  </aside>
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 
-  <div class="mode-switcher" id="mode-switcher">
-    <button type="button" class="mode-btn" data-mode="part2">Speaking Part 2</button>
-    <button type="button" class="mode-btn" data-mode="part3">Speaking Part 3</button>
-    <button type="button" class="mode-btn" data-mode="writing">Writing</button>
+  <div class="app">
+
+    <header class="app-header">
+      <button type="button" id="open-sidebar-btn" class="icon-btn menu-btn" aria-label="Lịch sử trò chuyện">☰</button>
+      <img src="assets/logo.png" alt="logo" class="header-logo" />
+      <div class="header-text">
+        <h1>Learn With Heart</h1>
+        <span>Trợ lý IELTS Speaking</span>
+      </div>
+      <button id="new-chat-btn" class="new-chat-btn" title="Cuộc trò chuyện mới">+ Mới</button>
+    </header>
+
+    <div class="mode-switcher" id="mode-switcher">
+      <button type="button" class="mode-btn" data-mode="part2">Speaking Part 2</button>
+      <button type="button" class="mode-btn" data-mode="part3">Speaking Part 3</button>
+      <button type="button" class="mode-btn" data-mode="writing">Writing</button>
+    </div>
+
+    <main id="chat-window" class="chat-window">
+      <div class="empty-state" id="empty-state">
+        <img src="assets/logo.png" alt="" class="empty-logo" />
+        <p>Hỏi mình về Value Line, cue card, hay bất kỳ phần nào trong bài học nhé.</p>
+      </div>
+    </main>
+
+    <form id="chat-form" class="chat-form">
+      <textarea
+        id="chat-input"
+        placeholder="Nhập câu hỏi của bạn..."
+        rows="1"
+        required
+      ></textarea>
+      <button type="submit" id="send-btn" aria-label="Gửi">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2L11 13" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </form>
+
   </div>
-
-  <main id="chat-window" class="chat-window">
-    <div class="empty-state" id="empty-state">
-      <img src="assets/logo.png" alt="" class="empty-logo" />
-      <p>Hỏi mình về Value Line, cue card, hay bất kỳ phần nào trong bài học nhé.</p>
-    </div>
-  </main>
-
-  <form id="chat-form" class="chat-form">
-    <textarea
-      id="chat-input"
-      placeholder="Nhập câu hỏi của bạn..."
-      rows="1"
-      required
-    ></textarea>
-    <button type="submit" id="send-btn" aria-label="Gửi">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 2L11 13" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-  </form>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
