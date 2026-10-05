@@ -33,18 +33,30 @@ def _parent_title(section_title: str) -> str | None:
     return HEADING_PATH_SEP.join(parts[:-1])
 
 
-def _siblings(session, hit: Chunk) -> list[Chunk]:
-    q = session.query(Chunk).filter(
-        Chunk.source_file == hit.source_file,
-        Chunk.is_active.is_(True),
-    )
-    parent = _parent_title(hit.section_title)
-    if parent is not None:
-        q = q.filter(
-            (Chunk.section_title == parent)
-            | Chunk.section_title.startswith(parent + HEADING_PATH_SEP, autoescape=True)
+def _load_files(source_files: set[str]) -> dict[str, list[Chunk]]:
+    # One query for every file the hits come from, instead of one query per hit.
+    session = SessionLocal()
+    try:
+        rows = (
+            session.query(Chunk)
+            .filter(Chunk.source_file.in_(source_files), Chunk.is_active.is_(True))
+            .order_by(Chunk.source_file, Chunk.chunk_index)
+            .all()
         )
-    return q.order_by(Chunk.chunk_index).all()
+    finally:
+        session.close()
+    by_file: dict[str, list[Chunk]] = {}
+    for c in rows:
+        by_file.setdefault(c.source_file, []).append(c)
+    return by_file
+
+
+def _siblings(file_chunks: list[Chunk], hit: Chunk) -> list[Chunk]:
+    parent = _parent_title(hit.section_title)
+    if parent is None:
+        return file_chunks
+    prefix = parent + HEADING_PATH_SEP
+    return [c for c in file_chunks if c.section_title == parent or c.section_title.startswith(prefix)]
 
 
 def _window(siblings: list[Chunk], hit: Chunk, used: set[int], max_tokens: int) -> list[Chunk]:
@@ -82,21 +94,19 @@ def expand(hits: list[Chunk]) -> list[ContextBlock]:
         span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "CHAIN")
         span.set_attribute(SpanAttributes.INPUT_VALUE, f"{len(hits)} chunks")
 
-        session = SessionLocal()
-        try:
-            used = {hit.id for hit in hits}
-            blocks = []
-            for hit in hits:
-                window = _window(_siblings(session, hit), hit, used, settings.context_block_max_tokens)
-                used.update(c.id for c in window)
-                blocks.append(ContextBlock(
-                    source_file=hit.source_file,
-                    section_title=hit.section_title,
-                    text="\n\n".join(c.text for c in window),
-                    chunk_ids=[c.id for c in window],
-                ))
-        finally:
-            session.close()
+        by_file = _load_files({hit.source_file for hit in hits})
+        used = {hit.id for hit in hits}
+        blocks = []
+        for hit in hits:
+            siblings = _siblings(by_file.get(hit.source_file, []), hit)
+            window = _window(siblings, hit, used, settings.context_block_max_tokens)
+            used.update(c.id for c in window)
+            blocks.append(ContextBlock(
+                source_file=hit.source_file,
+                section_title=hit.section_title,
+                text="\n\n".join(c.text for c in window),
+                chunk_ids=[c.id for c in window],
+            ))
 
         added = sum(len(b.chunk_ids) for b in blocks) - len(hits)
         span.set_attribute(SpanAttributes.OUTPUT_VALUE, f"{len(blocks)} blocks, {added} neighbor chunks added")
