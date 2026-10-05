@@ -74,7 +74,9 @@ def main():
         for filename in os.listdir(category_dir):
             if filename.endswith(".docx"):
                 disk_path = os.path.join(category_dir, filename)
-                logical_source_file = os.path.join(SOURCE_DIR, category, filename)
+                # macOS can return NFD file names; store NFC so re-ingesting the same file
+                # matches (and deactivates) its existing chunks.
+                logical_source_file = unicodedata.normalize("NFC", os.path.join(SOURCE_DIR, category, filename))
                 print(f"Ingesting [{category}] {filename}...")
                 ingest_file(session, disk_path, logical_source_file, filename, category)
     session.close()
