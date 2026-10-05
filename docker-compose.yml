@@ -22,6 +22,8 @@ services:
     depends_on:
       - db
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
 
   frontend:
     build: ./frontend
@@ -32,3 +34,4 @@ services:
 
 volumes:
   pgdata:
+  hf_cache:

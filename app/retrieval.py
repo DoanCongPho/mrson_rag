@@ -13,8 +13,8 @@ tracer = tracer_provider.get_tracer(__name__)
 
 client = OpenAI(api_key=settings.openai_api_key)
 
-# Khi bật reranker, lấy 1 shortlist rộng hơn bằng cosine (rẻ) rồi để
-# cross-encoder chấm lại chính xác hơn xuống còn top_k thật.
+# With the reranker on, fetch a wider shortlist by cosine (cheap), then let the
+# cross-encoder rescore it more accurately down to the real top_k.
 RERANK_CANDIDATE_K = settings.rerank_candidate_k
 
 

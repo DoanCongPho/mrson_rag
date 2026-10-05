@@ -23,7 +23,7 @@ def get_drive_client():
 
 
 def list_folder_recursive(drive, folder_id: str):
-    """Yield file dict cho mọi file trong folder + subfolder con."""
+    """Yield a file dict for every file in the folder and its subfolders."""
     page_token = None
     while True:
         resp = drive.files().list(
