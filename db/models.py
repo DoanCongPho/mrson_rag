@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
@@ -12,10 +12,15 @@ class Base(DeclarativeBase):
 
 class User(Base):
     __tablename__= 'users'
+    __table_args__ = (UniqueConstraint("google_sub", name="uq_users_google_sub"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Google account id ("sub" claim). Null for legacy users created from a typed name.
+    google_sub: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     conversations: Mapped[List["Conversation"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
@@ -26,6 +31,13 @@ class Conversation(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(255))
+    # "part2" | "part3" | "writing". Null for chats created before modes were stored.
+    category: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Rolling summary of the messages that left the history window.
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    summary_until_message_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     user: Mapped["User"] = relationship(back_populates="conversations")
@@ -34,6 +46,7 @@ class Conversation(Base):
 
 class Message(Base):
     __tablename__ = 'messages'
+    __table_args__ = (Index("ix_messages_conversation_id_id", "conversation_id", "id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     role: Mapped[str] = mapped_column(String(15))

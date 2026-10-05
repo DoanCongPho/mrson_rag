@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 import app.tracing
+from app.auth import router as auth_router
 from app.context import to_context
 from app.llm import build_prompt, client
 from app.retrieval import retrieve
@@ -31,10 +32,14 @@ app = FastAPI(title="Mr Son RAG", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # Cookies require explicit origins (not "*") and allow_credentials.
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 
 def get_or_create_user(db: Session, name: str) -> User:
