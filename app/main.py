@@ -11,6 +11,7 @@ from app.auth import get_current_user, router as auth_router
 from app.context import to_context
 from app.conversations import get_owned_conversation, router as conversations_router
 from app.llm import build_prompt, client
+from app.memory import history_as_text, history_messages, load_history
 from app.retrieval import retrieve
 from app.router import route
 from app.schemas import ChatRequest, ChatResponse, SourceOut
@@ -86,6 +87,8 @@ def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Sessi
     check_daily_limit(db, user)
     conversation = get_or_create_conversation(db, user, request)
     conversation.updated_at = func.now()
+    # Loaded before the new question is saved, so it is not part of its own history.
+    history = load_history(db, conversation.id)
 
     user_message = Message(
         role="user",
@@ -95,7 +98,12 @@ def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Sessi
     )
     db.add(user_message)
 
-    decision = route(request.query)
+    router_history = history[-2 * settings.router_history_turns:] if settings.router_history_turns > 0 else []
+    decision = route(
+        request.query,
+        history_text=history_as_text(router_history, settings.history_message_max_tokens),
+        summary=conversation.summary,
+    )
 
     if not decision.should_retrieve:
         db.add(Message(role="assistant", content=NO_RETRIEVAL_ANSWER, token_count=0, conversation_id=conversation.id))
@@ -104,8 +112,9 @@ def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Sessi
 
     # The chat's stored mode wins; old chats without one fall back to the router's choice.
     category = conversation.category or (None if decision.category == "all" else decision.category)
+    # Search with the rewritten question so follow-ups ("cho ví dụ ý 2") find the right chunks.
     results = retrieve(
-        request.query,
+        decision.standalone_query,
         top_k=decision.top_k,
         category=category,
     )
@@ -116,6 +125,7 @@ def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Sessi
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": prompt},
+                *history_messages(history),
                 {"role": "user", "content": request.query},
             ],
             temperature=0.8,
