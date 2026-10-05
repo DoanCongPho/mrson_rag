@@ -1,4 +1,4 @@
-from db.models import Chunk
+from app.context import ContextBlock, to_context
 from app.retrieval import retrieve
 from openai import OpenAI
 from config import settings
@@ -6,7 +6,7 @@ from config import settings
 client = OpenAI(api_key=settings.openai_api_key)
 
 
-def build_prompt(chunks: list[Chunk]) -> str:
+def build_prompt(chunks: list[ContextBlock]) -> str:
     context = "\n\n".join(
         f"[Nguồn {i+1}] {chunk.source_file} > {chunk.section_title}\n{chunk.text}"
         for i, chunk in enumerate(chunks)
@@ -46,8 +46,7 @@ def single_turn():
             continue
 
         results = retrieve(user_query)
-        chunks = [chunk for chunk, _ in results]
-        prompt = build_prompt(chunks=chunks)
+        prompt = build_prompt(chunks=to_context([chunk for chunk, _ in results]))
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
