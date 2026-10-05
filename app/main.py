@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 import app.tracing
+from app.context import to_context
 from app.llm import build_prompt, client
 from app.retrieval import retrieve
 from app.router import route
@@ -80,8 +81,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
             top_k=decision.top_k,
             category=category,
         )
-        chunks = [chunk for chunk, _ in results]
-        prompt = build_prompt(chunks)
+        prompt = build_prompt(to_context([chunk for chunk, _ in results]))
     else:
         db.commit()
         return ChatResponse(

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     reranker_enabled: bool = False
     root_folder_id: str = "1gkgCe5WNw5EuxAwAx6jbGQZea900tjcW"
     rerank_candidate_k: int = 15
+    context_expand_enabled: bool = True
+    context_block_max_tokens: int = 1000
 
 
 settings = Settings()
