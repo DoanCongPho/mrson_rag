@@ -11,14 +11,18 @@ from app.router import route
 from app.schemas import ChatRequest, ChatResponse, SourceOut
 from db.models import Conversation, Message, RetrievalLog, User
 from config import settings
-from db.session import get_db
+from db.session import check_connection, get_db
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Load the reranker model at startup so the first request doesn't pay for it.
+    # Load and warm up the reranker and open the first DB connection at startup,
+    # so the first request doesn't pay for them.
     if settings.reranker_enabled:
-        from app import reranker  # noqa: F401
+        from app import reranker
+
+        reranker.warmup()
+    check_connection()
     yield
 
 

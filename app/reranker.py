@@ -15,6 +15,15 @@ _model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 _model.eval()
 
 
+def warmup() -> None:
+    # Torch's first forward pass is a few seconds slower (kernel init, memory allocation),
+    # so run it once at startup instead of making the first user request pay for it.
+    pairs = [["warm up", "xin chào " * 200]] * 4
+    with torch.no_grad():
+        inputs = _tokenizer(pairs, padding=True, truncation=True, max_length=MAX_LENGTH, return_tensors="pt")
+        _model(**inputs, return_dict=True)
+
+
 def rerank(query: str, candidates: list[tuple[Chunk, float]], top_k: int) -> list[tuple[Chunk, float]]:
     with tracer.start_as_current_span("rerank") as span:
         span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "RERANKER")
