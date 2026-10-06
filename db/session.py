@@ -6,7 +6,8 @@ from sqlalchemy import text
 
 DATABASE_URL = settings.database_url
 
-engine = create_engine(DATABASE_URL)
+# pre_ping: hosted Postgres (e.g. Neon) closes idle connections when it auto-suspends.
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def check_connection():
