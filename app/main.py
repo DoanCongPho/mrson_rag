@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import timedelta
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ from app.auth import get_current_user, router as auth_router
 from app.context import to_context
 from app.conversations import get_owned_conversation, router as conversations_router
 from app.llm import build_prompt, client
-from app.memory import history_as_text, history_messages, load_history
+from app.memory import history_as_text, history_messages, load_history, update_summary
 from app.retrieval import retrieve
 from app.router import route
 from app.schemas import ChatRequest, ChatResponse, SourceOut
@@ -83,7 +83,12 @@ def get_or_create_conversation(db: Session, user: User, request: ChatRequest) ->
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def chat(
+    request: ChatRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     check_daily_limit(db, user)
     conversation = get_or_create_conversation(db, user, request)
     conversation.updated_at = func.now()
@@ -108,6 +113,7 @@ def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Sessi
     if not decision.should_retrieve:
         db.add(Message(role="assistant", content=NO_RETRIEVAL_ANSWER, token_count=0, conversation_id=conversation.id))
         db.commit()
+        background_tasks.add_task(update_summary, conversation.id)
         return ChatResponse(conversation_id=conversation.id, answer=NO_RETRIEVAL_ANSWER, sources=[])
 
     # The chat's stored mode wins; old chats without one fall back to the router's choice.
@@ -118,7 +124,7 @@ def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Sessi
         top_k=decision.top_k,
         category=category,
     )
-    prompt = build_prompt(to_context([chunk for chunk, _ in results]))
+    prompt = build_prompt(to_context([chunk for chunk, _ in results]), summary=conversation.summary)
 
     try:
         response = client.chat.completions.create(
@@ -170,6 +176,8 @@ def chat(request: ChatRequest, user: User = Depends(get_current_user), db: Sessi
         )
 
     db.commit()
+    # After the response is sent: fold messages that left the history window into the summary.
+    background_tasks.add_task(update_summary, conversation.id)
 
     return ChatResponse(
         conversation_id=conversation.id,

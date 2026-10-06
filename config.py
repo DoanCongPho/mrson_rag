@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     history_turns: int = 4  # last N exchanges (user + assistant) sent to the LLM
     history_message_max_tokens: int = 300  # each replayed message is cut to this
     router_history_turns: int = 2  # exchanges the router sees to rewrite follow-ups
+    summary_batch_turns: int = 2  # summarize once this many exchanges left the window
+    summary_max_words: int = 200
 
 
 settings = Settings()
