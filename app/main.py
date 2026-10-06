@@ -1,13 +1,17 @@
 from contextlib import asynccontextmanager
+from datetime import timedelta
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import app.tracing
-from app.auth import router as auth_router
+from app.auth import get_current_user, router as auth_router
 from app.context import to_context
+from app.conversations import get_owned_conversation, router as conversations_router
 from app.llm import build_prompt, client
+from app.memory import history_as_text, history_messages, load_history, update_summary
 from app.retrieval import retrieve
 from app.router import route
 from app.schemas import ChatRequest, ChatResponse, SourceOut
@@ -40,60 +44,56 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(conversations_router)
 
 
-def get_or_create_user(db: Session, name: str) -> User:
-    user = db.query(User).filter(User.name == name).first()
-    if user is None:
-        user = User(name=name)
-        db.add(user)
-        db.flush()
-    return user
+NO_RETRIEVAL_ANSWER = "Mr.Son: Hỏi gì thiếu minh bạch rõ ràng."
 
 
-def get_or_create_conversation(
-    db: Session, user: User, conversation_id: int | None, title: str
-) -> Conversation:
-    if conversation_id is not None:
-        conversation = (
-            db.query(Conversation)
-            .filter(Conversation.id == conversation_id, Conversation.user_id == user.id)
-            .first()
+def check_daily_limit(db: Session, user: User) -> None:
+    if settings.daily_message_limit <= 0:
+        return
+    sent = (
+        db.query(func.count(Message.id))
+        .join(Conversation, Message.conversation_id == Conversation.id)
+        .filter(
+            Conversation.user_id == user.id,
+            Message.role == "user",
+            Message.created_at >= func.now() - timedelta(days=1),
         )
-        if conversation is None:
-            raise HTTPException(status_code=404, detail="Conversation not found")
+        .scalar()
+    )
+    if sent >= settings.daily_message_limit:
+        raise HTTPException(status_code=429, detail="Daily message limit reached")
+
+
+def get_or_create_conversation(db: Session, user: User, request: ChatRequest) -> Conversation:
+    if request.conversation_id is not None:
+        conversation = get_owned_conversation(db, user, request.conversation_id)
+        if request.category and conversation.category and request.category != conversation.category:
+            raise HTTPException(status_code=400, detail="Conversation belongs to another mode")
         return conversation
 
-    conversation = Conversation(title=title[:255], user_id=user.id)
+    if request.category is None:
+        raise HTTPException(status_code=400, detail="category is required for a new conversation")
+    conversation = Conversation(title=request.query[:255], user_id=user.id, category=request.category)
     db.add(conversation)
     db.flush()
     return conversation
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest, db: Session = Depends(get_db)):
-    user = get_or_create_user(db, request.user_name)
-    conversation = get_or_create_conversation(
-        db, user, request.conversation_id, title=request.query
-    )
-
-    decision = route(request.query)
-
-    if decision.should_retrieve:
-        category = request.category or (None if decision.category == "all" else decision.category)
-        results = retrieve(
-            request.query,
-            top_k=decision.top_k,
-            category=category,
-        )
-        prompt = build_prompt(to_context([chunk for chunk, _ in results]))
-    else:
-        db.commit()
-        return ChatResponse(
-            conversation_id=conversation.id,
-            answer="Mr.Son: Hỏi gì thiếu minh bạch rõ ràng.",
-            sources=[],
-        )
+def chat(
+    request: ChatRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    check_daily_limit(db, user)
+    conversation = get_or_create_conversation(db, user, request)
+    conversation.updated_at = func.now()
+    # Loaded before the new question is saved, so it is not part of its own history.
+    history = load_history(db, conversation.id)
 
     user_message = Message(
         role="user",
@@ -103,11 +103,35 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     )
     db.add(user_message)
 
+    router_history = history[-2 * settings.router_history_turns:] if settings.router_history_turns > 0 else []
+    decision = route(
+        request.query,
+        history_text=history_as_text(router_history, settings.history_message_max_tokens),
+        summary=conversation.summary,
+    )
+
+    if not decision.should_retrieve:
+        db.add(Message(role="assistant", content=NO_RETRIEVAL_ANSWER, token_count=0, conversation_id=conversation.id))
+        db.commit()
+        background_tasks.add_task(update_summary, conversation.id)
+        return ChatResponse(conversation_id=conversation.id, answer=NO_RETRIEVAL_ANSWER, sources=[])
+
+    # The chat's stored mode wins; old chats without one fall back to the router's choice.
+    category = conversation.category or (None if decision.category == "all" else decision.category)
+    # Search with the rewritten question so follow-ups ("cho ví dụ ý 2") find the right chunks.
+    results = retrieve(
+        decision.standalone_query,
+        top_k=decision.top_k,
+        category=category,
+    )
+    prompt = build_prompt(to_context([chunk for chunk, _ in results]), summary=conversation.summary)
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": prompt},
+                *history_messages(history),
                 {"role": "user", "content": request.query},
             ],
             temperature=0.8,
@@ -152,6 +176,8 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         )
 
     db.commit()
+    # After the response is sent: fold messages that left the history window into the summary.
+    background_tasks.add_task(update_summary, conversation.id)
 
     return ChatResponse(
         conversation_id=conversation.id,

@@ -6,10 +6,20 @@ from config import settings
 client = OpenAI(api_key=settings.openai_api_key)
 
 
-def build_prompt(chunks: list[ContextBlock]) -> str:
+def build_prompt(chunks: list[ContextBlock], summary: str | None = None) -> str:
     context = "\n\n".join(
         f"[Nguồn {i+1}] {chunk.source_file} > {chunk.section_title}\n{chunk.text}"
         for i, chunk in enumerate(chunks)
+    )
+    # The summary only gives conversation context; facts must still come from CONTEXT.
+    summary_section = (
+        f"""
+[Tóm tắt cuộc trò chuyện trước đó]
+(Chỉ để hiểu ngữ cảnh học viên đang học gì; KHÔNG dùng làm nguồn kiến thức, KHÔNG trích dẫn.)
+{summary}
+"""
+        if summary
+        else ""
     )
 
     system_prompt = f"""Bạn là trợ lý IELTS. CHỈ dùng thông tin trong CONTEXT dưới đây để trả lời.
@@ -28,7 +38,7 @@ QUY TẮC TRÍCH NGUỒN:
 - Một ý dùng nhiều nguồn thì ghi [1][3].
 - Cuối câu trả lời, thêm mục "Nguồn tham khảo:" liệt kê các nguồn đã dùng theo dạng: [N] tên file > tên mục.
 - KHÔNG liệt kê nguồn không dùng đến.
-
+{summary_section}
 
 [Context]
 {context}
