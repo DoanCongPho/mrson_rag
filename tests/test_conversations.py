@@ -45,14 +45,21 @@ def fake_pipeline(monkeypatch):
     """Answer every question from 2 real chunks, without calling OpenAI."""
     with SessionLocal() as db:
         chunks = db.query(Chunk).filter(Chunk.is_active.is_(True)).limit(2).all()
-    state = SimpleNamespace(should_retrieve=True, categories=[])
+    state = SimpleNamespace(should_retrieve=True, categories=[], route_calls=[], searched=[], llm_messages=[])
 
-    def fake_route(query):
-        return RouteDecision(should_retrieve=state.should_retrieve, category="all", top_k=2)
+    def fake_route(query, history_text="", summary=None):
+        state.route_calls.append({"query": query, "history_text": history_text, "summary": summary})
+        return RouteDecision(should_retrieve=state.should_retrieve, category="all", top_k=2,
+                             standalone_query=f"standalone: {query}")
 
     def fake_retrieve(query, top_k, category):
         state.categories.append(category)
+        state.searched.append(query)
         return [(chunks[0], 0.9), (chunks[1], 0.5)]
+
+    def fake_create(**kw):
+        state.llm_messages.append(kw["messages"])
+        return completion
 
     completion = SimpleNamespace(
         choices=[SimpleNamespace(message=SimpleNamespace(content="answer [1]"))],
@@ -61,7 +68,7 @@ def fake_pipeline(monkeypatch):
     monkeypatch.setattr(main, "route", fake_route)
     monkeypatch.setattr(main, "retrieve", fake_retrieve)
     monkeypatch.setattr(main, "to_context", lambda hits: [])
-    monkeypatch.setattr(main.client.chat.completions, "create", lambda **kw: completion)
+    monkeypatch.setattr(main.client.chat.completions, "create", fake_create)
     return state
 
 

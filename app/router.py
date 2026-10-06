@@ -33,6 +33,13 @@ TOP_K_INSTRUCTIONS = """Deciding top_k (number of document chunks to fetch, rang
 - Broad questions needing synthesis across multiple sections (e.g. "summarize all the steps", "compare everything") -> high top_k (7-10).
 - Uncertain -> top_k = 5."""
 
+STANDALONE_QUERY_INSTRUCTIONS = """Deciding standalone_query (the text used to search the materials):
+- The user message may include the conversation so far and a summary, followed by the NEW question. Classify the NEW question, using the conversation only as context.
+- Rewrite the NEW question into a self-contained question in the same language, so it can be searched without the conversation: replace references like "ý 2", "cái đó", "nó", "ví dụ khác", "giải thích thêm" with the concrete topic they refer to.
+- Use the terminology of the course materials when the learner uses a looser name for the same concept (e.g. adverbial clauses are called "mệnh đề trạng ngữ" in the materials, even if the learner writes "mệnh đề trạng từ").
+- Do not answer the question and do not add new topics. If it is already self-contained, return it unchanged.
+- A follow-up about learning content ("cho ví dụ", "giải thích thêm ý 2") is a real question: should_retrieve = true."""
+
 FALLBACK_INSTRUCTIONS = """If should_retrieve = false, the category and top_k values don't matter -- just fill in "all" and 5."""
 
 ROUTER_SYSTEM_PROMPT = "\n\n".join([
@@ -40,6 +47,7 @@ ROUTER_SYSTEM_PROMPT = "\n\n".join([
     CATEGORY_INSTRUCTIONS,
     RETRIEVE_DECISION_INSTRUCTIONS,
     TOP_K_INSTRUCTIONS,
+    STANDALONE_QUERY_INSTRUCTIONS,
     FALLBACK_INSTRUCTIONS,
 ])
 
@@ -48,12 +56,23 @@ class RouteDecision(BaseModel):
     should_retrieve: bool
     category: Literal["part2", "part3", "writing", "all"]
     top_k: int
+    standalone_query: str
 
 
-DEFAULT_DECISION = RouteDecision(should_retrieve=True, category="all", top_k=DEFAULT_TOP_K)
+def _router_input(query: str, history_text: str, summary: str | None) -> str:
+    if not history_text and not summary:
+        return query
+    parts = []
+    if summary:
+        parts.append(f"Summary of earlier conversation:\n{summary}")
+    if history_text:
+        parts.append(f"Recent conversation:\n{history_text}")
+    parts.append(f"NEW question:\n{query}")
+    return "\n\n".join(parts)
 
 
-def route(query: str) -> RouteDecision:
+def route(query: str, history_text: str = "", summary: str | None = None) -> RouteDecision:
+    default = RouteDecision(should_retrieve=True, category="all", top_k=DEFAULT_TOP_K, standalone_query=query)
     with tracer.start_as_current_span("route") as span:
         span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "CHAIN")
         span.set_attribute(SpanAttributes.INPUT_VALUE, query)
@@ -63,7 +82,7 @@ def route(query: str) -> RouteDecision:
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
-                    {"role": "user", "content": query},
+                    {"role": "user", "content": _router_input(query, history_text, summary)},
                 ],
                 response_format=RouteDecision,
                 temperature=0,
@@ -73,10 +92,11 @@ def route(query: str) -> RouteDecision:
                 raise ValueError("router returned no parsed output (refusal or empty)")
         except Exception:
             span.set_attribute("route.fallback", True)
-            span.set_attribute(SpanAttributes.OUTPUT_VALUE, DEFAULT_DECISION.model_dump_json())
-            return DEFAULT_DECISION
+            span.set_attribute(SpanAttributes.OUTPUT_VALUE, default.model_dump_json())
+            return default
 
         clamped_top_k = max(MIN_TOP_K, min(MAX_TOP_K, decision.top_k))
-        decision = decision.model_copy(update={"top_k": clamped_top_k})
+        standalone_query = decision.standalone_query.strip() or query
+        decision = decision.model_copy(update={"top_k": clamped_top_k, "standalone_query": standalone_query})
         span.set_attribute(SpanAttributes.OUTPUT_VALUE, decision.model_dump_json())
         return decision
